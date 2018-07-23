@@ -95,36 +95,48 @@ func main() {
 	fmt.Println("Labels:")
 	for _, l := range r.Labels {
 		fmt.Printf("- %s\n", l.Name)
+		//fmt.Println(l.Name + ", " + l.Id)
 	}
 	//Get List of Messages Id's
 	//	srv.Users.Messages.List(user).Q("large:5M")
-	mes, err := srv.Users.Messages.List(user).LabelIds("INBOX").IncludeSpamTrash(false).MaxResults(5).Q("has:attachment filename:.png").Do()
+	mes, err := srv.Users.Messages.List(user).LabelIds("INBOX").IncludeSpamTrash(false).MaxResults(1).Q("has:attachment filename:.png").Do()
 	//srv.Users.Messages.List(user).LabelIds("INBOX")
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
+	emailMessages := make(EmailMessage, len(mes.Messages))
+
+	//emailMessages := EmailMessage{}
+	i := 0
 	for _, e := range mes.Messages {
-		email, err := srv.Users.Messages.Get(user, e.Id).Do()
+		//email, err := srv.Users.Messages.Get(user, e.Id).Do()
+		//fields := googleapi.Field{"id,payload(headers)"} //[]string{"id", "payload(headers)"}
+		email, err := srv.Users.Messages.Get(user, e.Id).Fields("id,payload(headers)").Do()
+
 		if err != nil {
 			log.Fatalf("Error: %v", err)
 		}
+
 		for _, header := range email.Payload.Headers {
+
 			if header.Name == "Subject" {
-				fmt.Printf("- %s\n", header.Value)
+				fmt.Printf("Subject - %s\n", header.Value)
+				emailMessages[i].Subject = header.Value
+			}
+			if header.Name == "From" {
+				fmt.Printf("From - %s\n", header.Value)
+				emailMessages[i].From = header.Value
+			}
+			if header.Name == "To" {
+				fmt.Printf("To - %s\n", header.Value)
+				emailMessages[i].To = header.Value
+			}
+			if header.Name == "Date" {
+				fmt.Printf("Date - %s\n", header.Value)
+				emailMessages[i].Date = header.Value
 			}
 		}
+		i++
 	}
-	/*attach, _ := srv.Users.Messages.Attachments.Get(user, messageid, attachmentid).Do()
-	decoded, err := base64.URLEncoding.DecodeString(attach.Data)
-	//fileout, err := os.OpenFile(...*/
-
-	/*mes, err := srv.Users.Labels.List(user).Do()
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	for _, e := range mes.Labels {
-		fmt.Println(e.Name + ", " + e.Id)
-	}*/
-
-	//Get the message using the above Id & print the subject
+	fmt.Printf("Completed")
 }
